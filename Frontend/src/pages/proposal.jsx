@@ -7,7 +7,6 @@ import React, { useState, useEffect } from "react";
 import { ethers } from 'ethers'
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 
-import { providers } from "ethers";
 import { Web3SignatureProvider } from "@requestnetwork/web3-signature";
 import { RequestNetwork } from "@requestnetwork/request-client.js"
 import { Types, Utils } from "@requestnetwork/request-client.js";
@@ -31,7 +30,6 @@ import getProposalById from '../getProposalById';
 import GetClub from '../getclub';
 import Tg from "../components/toggle";
 
-// const ethers = require("ethers")
 
 
 const provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -61,9 +59,18 @@ async function getContract(userAddress) {
   
  
   var clubs = await contractPublic.methods.getProposalById(clubId, proposalId).call();
+  var club = await contractPublic.methods.getClubById(clubId).call();
+
+
+  const poolBalanceWei = club.pool;
+  const poolBalanceEther = web3.utils.fromWei(poolBalanceWei.toString(), 'ether');
 
   const destination = clubs.destination.toString();
   const amount =clubs.amount.toString();
+
+  const proposalamnt = web3.utils.fromWei(clubs.amount.toString(), 'ether');
+
+  
 
         
   var DealId = null;
@@ -73,8 +80,7 @@ async function getContract(userAddress) {
   const payerIdentity = marketplaceAddress; 
   const paymentRecipient = payeeIdentity;
   const feeRecipient = '0x0000000000000000000000000000000000000000';
-  alert(payeeIdentity);
-  alert(payerIdentity);
+
 
 
   const requestCreateParameters = 
@@ -140,6 +146,9 @@ async function getContract(userAddress) {
 
 
   function  Proposal() {
+
+    const [isLoading, setIsLoading] = useState(false);
+const [progress, setProgress] = useState('');
     
 
     const [isVisible, setIsVisible] = useState(true);
@@ -158,292 +167,156 @@ async function getContract(userAddress) {
       }
     }, []);
 
+
     async function runProposal(event) {
-
-
-  const createRequest = async () => {
-    // alert("Heyy");
-    if (window.ethereum) {
-      // const provider = new providers.Web3Provider(window.ethereum);
-      // console.log("provider", provider);
-      // const accounts = await provider.send("eth_accounts", []);
-      // console.log("Accounts:", accounts); // Should not be empty
-
-      const signer = provider.getSigner();
-      // console.log('Signer:', signer);
+      setIsLoading(true);
+      setProgress('');
     
-      const web3SignatureProvider = new Web3SignatureProvider(provider.provider);
-      console.log("Web3SignatureProvider initialized:", web3SignatureProvider);
-      
-      
-      const requestClient=new RequestNetwork({
-        nodeConnectionConfig: { 
-          baseURL: "https://sepolia.gateway.request.network/",
-        },
-        signatureProvider: web3SignatureProvider,
-      })
-      console.log("request Client:",requestClient);
-      const request = await requestClient.createRequest(requestCreateParameters);
-      
-      const confirmedRequestData = await request.waitForConfirmation();
-      console.log("confirmed Request Data:",confirmedRequestData);
-      
-
-      // get requestId
-
-
-      console.log("Request Id created sucessfully:",request.requestId);
-
-      // Get Request Data
-
-      let requestData = request.getData();
-
-
-
-      const paymentTx= await payRequest(requestData,signer);
-
-      await paymentTx.wait(2);
-
-      console.log("THe poayment is",paymentTx);
-
-      console.log("Payment sent sucessfully",await paymentTx.transactionHash);
-
-
-
-      // const request1 = await requestClient.fromRequestId(
-      //   '0175854b152c9fd61ad48d8c25a6e4fbecc05390405f15779fab5144fd3e316def',
-      // );
-      // const requestData1 = request1.getData();
-
-
-      // console.log("The status is:",requestData1);
-
-      while (requestData.balance?.balance < requestData.expectedAmount) {
-        requestData = await request.refresh();
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      }
-
-      console.log("Finished")
-      console.log(requestData);
-
-
-      alert('Wallet connected successfully!');
-    } else {
-      console.error('Ethereum provider (window.ethereum) is not available. Please install MetaMask.');
-    }
-  };
-
-  
-
- 
-
-      var filWalletAddress = localStorage.getItem("filWalletAddress");
-      await getContract(filWalletAddress);
-      if (contractPublic != undefined) {
-        var option_execution = $('#option_execution').val()
-        var password = $('#passwordShowPVExecution').val();
-        if (option_execution == '') {
-          $('.errorExecution').css("display", "block");
-          $('.errorExecution').text("Option is required");
-          return;
-        }
-        if (password == '') {
-          $('.errorExecution').css("display", "block");
-          $('.errorExecution').text("Password is invalid");
-          return;
-        }
-        var clubId = localStorage.getItem("clubId");
-        var proposalId = localStorage.getItem("proposalId");
-        try {
-          const my_wallet = await web3.eth.accounts.wallet.load(password);
-        
-          if (my_wallet !== undefined) {
-            $('.errorExecution').css("display", "none");
-            $('.successExecution').css("display", "block");
-            $('.successExecution').text("Running...");
-            
-            try {
-              const ans = await contractPublic.methods.isVotingOn(clubId, proposalId).call();
-  
-              if (ans) {
-                toast.error("Voting is still ON")
-                $('.successExecution').css("display", "none");
-                $('.errorExecution').css("display", "block");
-                $('.errorExecution').text("Voting is still ON");
-              }
-              
-              if (option_execution == 'execute') {
-                await createRequest();
-              } else if (option_execution == 'close') {
-                const query = contractPublic.methods.closeProposal(clubId, proposalId);
-                const encodedABI = query.encodeABI();
-                
-                try {
-                  const abi = ABI.abi;
-                  const iface = new ethers.utils.Interface(abi);
-                  const encodedData = iface.encodeFunctionData("closeProposal", [clubId, proposalId]);
-                  
-                  const signer = provider.getSigner();
-                  console.log("signer", signer);
-                  const tx = {
-                    to: marketplaceAddress,
-                    data: encodedData,
-                  };
-                  const txResponse = await signer.sendTransaction(tx);
-                  const txReceipt = await txResponse.wait();
-  
-                  notification.success({
-                    message: 'Transaction Successful',
-                    description: (
-                      <div>
-                        Transaction Hash: <a href={`https://sepolia.lineascan.build/tx/${txReceipt.transactionHash}`} target="_blank" rel="noopener noreferrer">{txReceipt.transactionHash}</a>
-                      </div>
-                    )
-                  });
-  
-                  console.log(txReceipt.transactionHash);
-                  setIsVisible(false); // Hide the component when the 'close' option is executed
-                } catch (error) {
-                  console.log(error)
-                }
-              }
-            } catch (error) {
-              console.log(error)
-              $('.successExecution').css("display", "none");
-              $('.errorExecution').css("display", "block");
-              $('.errorExecution').text("Error executing/closing the proposal");
-              return;
+      const createRequest = async () => {
+        if (window.ethereum) {
+          try {
+            setProgress('Creating request...');
+            const signer = provider.getSigner();
+            const web3SignatureProvider = new Web3SignatureProvider(provider.provider);
+    
+            const requestClient = new RequestNetwork({
+              nodeConnectionConfig: { baseURL: "https://sepolia.gateway.request.network/" },
+              signatureProvider: web3SignatureProvider,
+            });
+    
+            const request = await requestClient.createRequest(requestCreateParameters);
+            setProgress('Waiting for confirmation...');
+            const confirmedRequestData = await request.waitForConfirmation();
+            console.log("Request ID:", request.requestId);
+    
+            setProgress('Processing payment...');
+            let requestData = request.getData();
+            const paymentTx = await payRequest(requestData, signer);
+            await paymentTx.wait(2);
+    
+            while (requestData.balance?.balance < requestData.expectedAmount) {
+              requestData = await request.refresh();
+              await new Promise((resolve) => setTimeout(resolve, 1000));
             }
-          } else {
-            toast.error("Invalid wallet")
+    
+            console.log("Payment completed:", requestData);
+            setProgress('Payment completed!');
+          } catch (error) {
+            console.error("Error during payment processing:", error);
+            setProgress('Error: ' + error.message);
+            $('.errorExecution').css("display", "block").text("Error processing payment");
           }
-        } catch (error) {
-          console.log(error)
+        } else {
+          console.error("MetaMask not available");
+          setProgress('Error: MetaMask not available');
+          $('.errorExecution').css("display", "block").text("MetaMask not available");
         }
+      };
+    
+      const executeOrCloseProposal = async (action, clubId, proposalId) => {
+        try {
+          setProgress(`${action === 'execute' ? 'Executing' : 'Closing'} proposal...`);
+    
+          const isVotingOn = await contractPublic.methods.isVotingOn(clubId, proposalId).call();
+          if (isVotingOn) {
+            throw new Error("Voting is still ON");
+          }
+    
+          const abi = ABI.abi;
+          const iface = new ethers.utils.Interface(abi);
+          const functionName = action === "execute" ? "executeProposal" : "closeProposal";
+          const encodedData = iface.encodeFunctionData(functionName, [clubId, proposalId]);
+    
+          const signer = provider.getSigner();
+          const tx = {
+            to: marketplaceAddress,
+            data: encodedData,
+          };
+    
+          const txResponse = await signer.sendTransaction(tx);
+          setProgress('Waiting for transaction confirmation...');
+          const txReceipt = await txResponse.wait();
+    
+          setProgress('Transaction confirmed!');
+          console.log("Transaction Hash:", txReceipt.transactionHash);
+    
+          notification.success({
+            message: 'Transaction Successful',
+            description: (
+              <div>
+                Transaction Hash:{" "}
+                <a
+                  href={`https://sepolia.lineascan.build/tx/${txReceipt.transactionHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {txReceipt.transactionHash}
+                </a>
+              </div>
+            ),
+          });
+    
+          if (action === 'close') setIsVisible(false);
+        } catch (error) {
+          console.error(`Error during proposal ${action}:`, error);
+          setProgress(`Error: ${error.message}`);
+          $('.errorExecution').css("display", "block").text(`Error: ${error.message}`);
+        }
+      };
+    
+      const filWalletAddress = localStorage.getItem("filWalletAddress");
+      await getContract(filWalletAddress);
+    
+      if (contractPublic) {
+        const option_execution = $('#option_execution').val();
+        const clubId = localStorage.getItem("clubId");
+        const proposalId = localStorage.getItem("proposalId");
+    
+        if (!option_execution) {
+          setProgress('Error: Option is required');
+          $('.errorExecution').css("display", "block").text("Option is required");
+          setIsLoading(false);
+          return;
+        }
+    
+        if (option_execution === "execute") {
+          const isVotingOn = await contractPublic.methods.isVotingOn(clubId, proposalId).call();
+          if (isVotingOn) {
+            setProgress('Error: Voting is still ON');
+            $('.errorExecution').css("display", "block").text("Voting is still ON");
+            setIsLoading(false);
+            return;
+          }
+
+          if(proposalamnt>poolBalanceEther){
+
+            notification.error({
+              message: 'Club has Less balance than requested'
+              
+            })
+
+            $('.errorExecution').css("display", "block").text("Club has Less balance than requested");
+            return;
+          }
+    
+          await createRequest();
+          await executeOrCloseProposal("execute", clubId, proposalId);
+        } else if (option_execution === "close") {
+          await executeOrCloseProposal("close", clubId, proposalId);
+        }
+      } else {
+        console.error("Contract not initialized");
+        setProgress('Error: Contract not initialized');
+        $('.errorExecution').css("display", "block").text("Contract not initialized");
       }
+    
+      setIsLoading(false);
     }
   
 
     if (!isVisible) {
       return null;
     }
-
-
-
-async function SaveDataToBlockchain(){
-  var filWalletAddress = localStorage.getItem("filWalletAddress");
-  await getContract(filWalletAddress);
-  if(contractPublic != undefined) {
-    var option_execution = $('#option_execution').val()
-    var password = $('#passwordShowPVExecution').val();
-    if(option_execution == '') {
-      $('.errorExecution1').css("display","block");
-      $('.errorExecution1').text("Option is required");
-      return;
-    }
-    if(password == '') {
-      $('.errorExecution1').css("display","block");
-      $('.errorExecution1').text("Password is invalid");
-      return;
-    }
-    var clubId = localStorage.getItem("clubId");
-    var proposalId = localStorage.getItem("proposalId");
-    try {
-      const my_wallet = await web3.eth.accounts.wallet.load(password);
-    
-    if(my_wallet !== undefined)
-    {
-      
-
-      $('.errorExecution1').css("display","none");
-      $('.successExecution1').css("display","block");
-      $('.successExecution1').text("Running...");
-      var clubId = localStorage.getItem("clubId");
-      var proposalId = localStorage.getItem("proposalId");
-      
-        try {
-          const ans  = await contractPublic.methods.isVotingOn(clubId,proposalId).call();
-
-          if(ans){
-            toast.error("Voting is still ON")
-            $('.successExecution1').css("display","none");
-            $('.errorExecution1').css("display","block");
-            $('.errorExecution1').text("Voting is still ON");
-          }
-          
-      
-            const query = await contractPublic.methods.executeProposal(clubId,proposalId);
-            const encodedABI = query.encodeABI();
-            
-            
-            try{
-              const abi = ABI.abi;
-                const iface = new ethers.utils.Interface(abi);
-                const encodedData = iface.encodeFunctionData("executeProposal", [clubId,proposalId]);
-                const GAS_MANAGER_POLICY_ID = "479c3127-fb07-4cc6-abce-d73a447d2c01";
-            
-                const signer = provider.getSigner();
-
-                console.log("singer",signer);
-                const tx = {
-                  to: marketplaceAddress,
-                  data: encodedData,
-                };
-                const txResponse = await signer.sendTransaction(tx);
-                const txReceipt = await txResponse.wait();
-  
-                notification.success({
-                  message: 'Transaction Successful',
-                  description: (
-                    <div>
-                      Transaction Hash: <a href={`https://sepolia.lineascan.build/tx/${txReceipt.transactionHash}`} target="_blank" rel="noopener noreferrer">{txReceipt.transactionHash}</a>
-                    </div>
-                  )
-                });
-  
-                console.log(txReceipt.transactionHash);
-            
-                
-              }catch(error){
-                console.log(error)
-              }
-
-         
-          
-        } catch (error) {
-          // alert(error)
-         
-          console.log(error)
-          $('.successExecutio1n').css("display","none");
-          $('.errorExecution1').css("display","block");
-          $('.errorExecution1').text("Error executing/closing the proposal");
-          return;
-        }
-        
-        $('#option_execution1').val('');
-        $('#passwordShowPVExecution1').val('');
-        $('.errorExecution1').css("display","none");
-        $('.successExecution1').css("display","block");
-        $('.successExecution1').text("The execution was successful ");
-      } else {
-        // alert(error)
-        toast.error(error)
-        $('.valid-feedback1').css('display','none');
-          $('.invalid-feedback1').css('display','block');
-          $('.invalid-feedback1').text('The password is invalid');
-      }
-    }
-    catch {
-    
-      $('.valid-feedback1').css('display','none');
-          $('.invalid-feedback1').css('display','block');
-          $('.invalid-feedback1').text('The password is invalid');
-    }
-    
-    
-  }
-
-}
 
 async function verify(){
   const clubId =  localStorage.getItem("clubId");
@@ -869,63 +742,46 @@ async function verifyUserInClub() {
                   <h6 className="m-0 font-weight-bold text-primary">Options</h6>
                 </div>
                 <div className="card-body">
-                  <p>
-                    Select an option: <br />
-                    <select id="option_execution" className="form-control">
-                      <option value="execute">Execute proposal</option>
-                      <option value="close">Close proposal</option>
-                    </select>{" "}
-                    <br />
-                   
-                    <div href="" id="btnExecution" onClick={() => {
-                        runProposal();
-                      }} className="btn btn-success">
-                      Confirm
-                    </div>{" "}
-                    <br />
-                  </p>
-                  <div
-                    className="successExecution valid-feedback"
-                    style={{ display: "none" }}
-                  />
-                  <div
-                    className="errorExecution invalid-feedback"
-                    style={{ display: "none" }}
-                  />
-                  <p />
-                </div>
+  <p>
+    Select an option: <br />
+    <select id="option_execution" className="form-control mb-4">
+      <option value="execute">Execute proposal</option>
+      <option value="close">Close proposal</option>
+    </select>
+    <button
+      onClick={runProposal}
+      disabled={isLoading}
+      className={`w-full py-2 px-4 font-semibold rounded-lg shadow-md ${
+        isLoading
+          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          : 'bg-blue-500 text-white hover:bg-blue-600'
+      }`}
+    >
+      {isLoading ? 'Processing...' : 'Confirm'}
+    </button>
+  </p>
+  {progress && (
+    <div className="mt-4">
+      <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+        <div
+          className="bg-blue-600 h-2.5 rounded-full"
+          style={{ width: isLoading ? '100%' : '0%' }}
+        ></div>
+      </div>
+      <p className="text-sm text-gray-600 mt-2">{progress}</p>
+    </div>
+  )}
+  <div
+    className="successExecution valid-feedback mt-2"
+    style={{ display: "none" }}
+  />
+  <div
+    className="errorExecution invalid-feedback mt-2"
+    style={{ display: "none" }}
+  />
+</div>
               </div>
-              <div
-                className="card shadow mb-4 creator_options"
-                style={{ display: "none" }}
-              >
-                <div className="card-header py-3">
-                  <h6 className="m-0 font-weight-bold text-primary">Options</h6>
-                </div>
-                <div className="card-body">
-                  <p>
-                    Save Data on blockchain <br />
-                    
-                    <br />
-                   
-                    <div href="" id="btnExecution" onClick={() => {
-                        SaveDataToBlockchain();
-                      }} className="btn btn-success">
-                      Confirm
-                    </div>{" "}
-                    <br />
-                  </p>
-                  <div
-                    className="successExecution1 valid-feedback1"
-                    style={{ display: "none" }}
-                  />
-                  <div
-                    className="errorExecution1 invalid-feedback1"
-                    style={{ display: "none" }}
-                  />
-                  <p />
-                </div>
-              </div>
+              
             </div>
           </div>
           {/* Content Row */}
