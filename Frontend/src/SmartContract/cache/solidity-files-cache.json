@@ -1,0 +1,41 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "/home/vishal/Desktop/allgitfiles/SmallFinance/Frontend/src/SmartContract/contracts/InvestmentClub.sol": {
+      "lastModificationDate": 1733163491148,
+      "contentHash": "720c039e23bb902420a18dcc25a30792",
+      "sourceName": "contracts/InvestmentClub.sol",
+      "solcConfig": {
+        "version": "0.8.10",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.10"
+      ],
+      "artifacts": [
+        "ClubLibrary",
+        "InvestmentClub"
+      ]
+    }
+  }
+}
