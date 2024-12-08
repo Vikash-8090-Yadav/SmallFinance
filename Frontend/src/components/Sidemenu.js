@@ -12,18 +12,18 @@ import {Web3} from 'web3';
 
 const accountAddress = localStorage.getItem("filWalletAddress");
 
-const web3 = new Web3(new Web3.providers.HttpProvider("https://rpc.sepolia.linea.build"));
+const web3 = new Web3(new Web3.providers.HttpProvider("https://sepolia.drpc.org"));
 
 function SideMenu({ isOpen, setIsOpen, smartAccount, logout, address }) {
 
   const address1 = localStorage.getItem("filWalletAddress");
 
   function hndclck(){
-    window.open(`https://sepolia.lineascan.build/address/${address1}`, '_blank');
+    window.open(`https://sepolia.etherscan.io/address/${address1}`, '_blank');
   }
 
   function testclk(){
-    window.open('https://www.infura.io/faucet/linea', '_blank');
+    window.open('https://www.alchemy.com/faucets/ethereum-sepolia', '_blank');
   }
 
   const [value, setValue] = useState(0);
@@ -93,7 +93,7 @@ function SideMenu({ isOpen, setIsOpen, smartAccount, logout, address }) {
                   <div className=" mashiha divide-gray-900 bg-gray-900 text-white-900" >
                     <div className="px-4 mm  sm:px-6">
                       <div className="flex items-start justify-between">
-                        <h2 className="text-llg font-medium text-white">Linea Club</h2>
+                        <h2 className="text-llg font-medium text-white">Samll Finance</h2>
                         
                       </div>
                       

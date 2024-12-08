@@ -13,7 +13,7 @@ import $, { error } from 'jquery';
 import { marketplaceAddress } from "../config";
 import {Web3} from 'web3';
 
-const web3 = new Web3(new Web3.providers.HttpProvider("https://rpc.sepolia.linea.build"));
+const web3 = new Web3(new Web3.providers.HttpProvider("https://ethereum-sepolia-rpc.publicnode.com/"));
 var contractPublic = null;
 
 
@@ -91,7 +91,7 @@ function Base() {
         <div className="sidebar-brand-icon rotate-n-15">
           <i className="fas fa-laugh-wink" />
         </div>
-        <div className="sidebar-brand-text mx-3"> Linea Club </div>
+        <div className="sidebar-brand-text mx-3"> Small Finance </div>
       </a>
       {/* Divider */}
       <hr className="sidebar-divider my-0" />
@@ -244,12 +244,12 @@ function Base() {
               <div className="card shadow mb-4">
                 <div className="card-header py-3">
                   <h6 className="m-0 font-weight-bold text-primary">
-                  Linea Club
+                  Small Finance
                   </h6>
                 </div>
                 <div className="card-body">
                   <p>
-                  Linea Club is a light web wallet and Investment Club
+                  SF Club is a light web wallet and Investment Club
                     platform to manage funds.
                   </p>
                 </div>
